@@ -2,11 +2,9 @@
 from centroidtracker import CentroidTracker
 from imutils.video import VideoStream
 import numpy as np
-import argparse
 import imutils
 import time
 import cv2
-import os
 
 
 def Main():
@@ -135,9 +133,9 @@ def Main():
                     left = max(left, left_people)
 
             info = [
-                ("Left", left),
-                ("Total", total_person),
-                ("Time", end - begin)
+                ("crossing Left", left),
+                ("Total people", total_person),
+                ("Time taken", end - begin)
             ]
 
             for (i, (k, v)) in enumerate(info):
@@ -160,7 +158,7 @@ def Main():
 
             # show the output image
 
-            cv2.imshow("Live", image)
+            cv2.imshow("Count and Track", image)
             # write the output frame to disk
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
