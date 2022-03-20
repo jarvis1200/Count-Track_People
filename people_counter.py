@@ -1,10 +1,11 @@
-# import the necessary packages
+import the necessary packages
 from centroidtracker import CentroidTracker
 from imutils.video import VideoStream
 import numpy as np
 import imutils
 import time
 import cv2
+
 
 
 def Main():
@@ -23,7 +24,9 @@ def Main():
     net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 
 
+
     cap = cv2.VideoCapture("mall.mp4")
+
 
     # try to determine the total number of frames in the video file
     try:
@@ -32,6 +35,7 @@ def Main():
         total = int(cap.get(prop))
         print("[INFO] {} total frames in video".format(total))
 
+
     # an error occurred while trying to determine the total
     # number of frames in the video file
     except:
@@ -39,20 +43,25 @@ def Main():
         print("[INFO] no approx. completion time can be provided")
         total = -1
 
+
     print(cap.isOpened())
     begin = time.time()
-    left = 0
+    left = []
     while (cap.isOpened()):
         ret, image = cap.read()
 
+
         # load our input image and grab its spatial dimension
+
 
         if ret == True:
             (H, W) = image.shape[:2]
 
+
             # determine only the *output* layer names that we need from YOLO
             ln = net.getLayerNames()
-            ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
+            ln = [ln[i - 1] for i in net.getUnconnectedOutLayers()]
+
 
             # construct a blob from the input image and then perform a forward
             # pass of the YOLO object detector, giving us our bounding boxes and
@@ -64,8 +73,10 @@ def Main():
             layerOutputs = net.forward(ln)
             end = time.time()
 
+
             # show timing information on YOLO
             print("[INFO] YOLO took {:.6f} seconds".format(end - start))
+
 
             # initialize our lists of detected bounding boxes, confidences, and
             # class IDs, respectively
@@ -88,7 +99,7 @@ def Main():
                     confidence = scores[classID]
                     # filter out weak predictions by ensuring the detected
                     # probability is greater than the minimum probability
-                    if confidence > 0.2 and classID == 1:
+                    if confidence > 0.1 and classID == 1:
                         # scale the bounding box coordinates back relative to the
                         # size of the image, keeping in mind that YOLO actually
                         # returns the center (x, y)-coordinates of the bounding
@@ -106,9 +117,11 @@ def Main():
                         confidences.append(float(confidence))
                         classIDs.append(classID)
 
+
             # apply non-maxima suppression to suppress weak, overlapping bounding
             # boxes
             idxs = cv2.dnn.NMSBoxes(boxes, confidences, 0.2, 0.3)
+
 
             if len(idxs) > 0:
                 for i in idxs.flatten():
@@ -116,6 +129,8 @@ def Main():
             # update our centroid tracker using the computed set of bounding
             # box rectangles
             cv2.line(image, (W//2, 0), (W//2, H), (255, 0, 0), 2)
+            #line left to previous line
+            cv2.line(image, (W//2 - 10, 0), (W//2 - 10, H), (255, 0, 0), 2)
             objects = ct.update(rects)
             for (objectID, centroid) in objects.items():
                 # draw both the ID of the object and the centroid of the
@@ -128,20 +143,58 @@ def Main():
                 total_person = max(total_person, objectID)
             
                 #function to count overall people moving from left half to right half
-                if centroid[0] > W//2:
-                    left_people += 1
-                    left = max(left, left_people)
+                #first touch 1 line
+                # print(centroid)
+                if centroid[0] > W//2 - 10:
+                    if centroid[0] > W//2 and centroid[0] < W//2 + 10:
+                        if objectID not in left:
+                            left.append(objectID)
+                        else:
+                            continue
+                    else:
+                        continue
+                else:
+                    if objectID in left:
+                        left.remove(objectID)
+                    else:
+                        continue
+
+
+                
+                        
+                        
+
+
+
+                    
+
+
+                
+                    # if centroid[0] > W//2:
+                    #     # left_people += 1
+                    #     # left = max(left, left_people)
+                    #     if objectID not in left:
+                    #         left.append(objectID)
+                    # else:
+                    #     if objectID in left:
+                    #         left.remove(objectID)
+                        
+                    
+
+
 
             info = [
-                ("crossing Left", left),
+                ("crossing Left", len(left)),
                 ("Total people", total_person),
                 ("Time taken", end - begin)
             ]
+
 
             for (i, (k, v)) in enumerate(info):
                 text = "{}: {}".format(k, v)
                 cv2.putText(image, text, (10, H - ((i * 20) + 20)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
 
             # ensure at least one detection exists
             if len(idxs) > 0:
@@ -151,12 +204,15 @@ def Main():
                     (x, y) = (boxes[i][0], boxes[i][1])
                     (w, h) = (boxes[i][2], boxes[i][3])
 
+
                     # draw a bounding box rectangle and label on the image
                     color = [int(c) for c in COLORS[classIDs[i]]]
                     cv2.rectangle(image, (x, y), (x + w, y + h), color, 1)
                     
 
+
             # show the output image
+
 
             cv2.imshow("Count and Track", image)
             # write the output frame to disk
@@ -170,7 +226,9 @@ def Main():
     cv2.destroyAllWindows()
     finish = time.time()
 
+
     print(f"Total time taken : {finish - begin}")
+
 
 
 
